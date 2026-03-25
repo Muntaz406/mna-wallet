@@ -10,7 +10,6 @@ const cryptoDB = [
     { id: 'binancecoin', symbol: 'BNB', name: 'BNB', defaultPrice: 580, img: 'https://assets.coingecko.com/coins/images/825/standard/bnb-icon2_2x.png', tvSymbol: 'BINANCE:BNBUSDT' },
     { id: 'ripple', symbol: 'XRP', name: 'Ripple', defaultPrice: 0.62, img: 'https://assets.coingecko.com/coins/images/44/standard/xrp-symbol-white.png', tvSymbol: 'BINANCE:XRPUSDT' },
     { id: 'dogecoin', symbol: 'DOGE', name: 'Dogecoin', defaultPrice: 0.16, img: 'https://assets.coingecko.com/coins/images/5/standard/dogecoin.png', tvSymbol: 'BINANCE:DOGEUSDT' },
-    { id: 'shiba-inu', symbol: 'SHIB', name: 'Shiba Inu', defaultPrice: 0.000025, img: 'https://assets.coingecko.com/coins/images/11939/standard/shiba.png', tvSymbol: 'BINANCE:SHIBUSDT' },
     { id: 'pepe', symbol: 'PEPE', name: 'Pepe', defaultPrice: 0.000008, img: 'https://assets.coingecko.com/coins/images/29850/standard/pepe-token.jpeg', tvSymbol: 'BINANCE:PEPEUSDT' }
 ];
 
@@ -20,14 +19,12 @@ let appState = {
     profilePic: DEFAULT_AVATAR,
     shares: { 'BTC': 0.4, 'ETH': 0.3, 'SOL': 0.1, 'PEPE': 0.1, 'USDT': 0.1 },
     prices: {},
-    history: [] // Tambahan fitur riwayat
+    history: [] 
 };
 
 function initFallbackPrices() {
     cryptoDB.forEach(coin => {
-        if (!appState.prices[coin.symbol]) {
-            appState.prices[coin.symbol] = { usd: coin.defaultPrice, change: (Math.random() * 5).toFixed(2) };
-        }
+        if (!appState.prices[coin.symbol]) appState.prices[coin.symbol] = { usd: coin.defaultPrice, change: (Math.random() * 5).toFixed(2) };
     });
 }
 
@@ -37,26 +34,18 @@ async function fetchLivePrices() {
         const response = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`);
         if (!response.ok) throw new Error("API Limit Reached");
         const data = await response.json();
-        
         cryptoDB.forEach(coin => {
-            if (data[coin.id] && data[coin.id].usd) {
-                appState.prices[coin.symbol] = { usd: data[coin.id].usd, change: data[coin.id].usd_24h_change || 0 };
-            }
+            if (data[coin.id] && data[coin.id].usd) appState.prices[coin.symbol] = { usd: data[coin.id].usd, change: data[coin.id].usd_24h_change || 0 };
         });
         saveData();
-    } catch (error) {
-        console.warn("Using Fallback Prices.");
-    } finally {
-        renderHomeAssets();
-        renderMarketAssets();
-    }
+    } catch (error) { console.warn("Using Fallback Prices."); } 
+    finally { renderHomeAssets(); renderMarketAssets(); }
 }
 
 function renderHomeAssets() {
     const totalEl = document.getElementById('totalBalance');
     if (totalEl) totalEl.innerText = appState.totalBalance.toLocaleString('en-US', { minimumFractionDigits: 2 });
     
-    // Hitung Otomatis PNL Berdasarkan Pasar
     let totalChange = 0; let count = 0;
     cryptoDB.forEach(coin => {
         if (appState.prices[coin.symbol]) { totalChange += parseFloat(appState.prices[coin.symbol].change); count++; }
@@ -76,13 +65,11 @@ function renderHomeAssets() {
     const container = document.getElementById('homeAssetList');
     if (!container) return;
     container.innerHTML = '';
-    
     cryptoDB.forEach(coin => {
         if (appState.shares[coin.symbol] && appState.prices[coin.symbol]) {
             const price = appState.prices[coin.symbol].usd;
             const fiatValue = appState.totalBalance * appState.shares[coin.symbol];
-            const amount = fiatValue / price;
-            container.innerHTML += createCoinCard(coin, fiatValue, amount, false);
+            container.innerHTML += createCoinCard(coin, fiatValue, fiatValue / price, false);
         }
     });
 }
@@ -91,9 +78,7 @@ function renderMarketAssets() {
     const container = document.getElementById('marketAssetList');
     if (!container) return;
     container.innerHTML = '';
-    cryptoDB.forEach(coin => {
-        if (appState.prices[coin.symbol]) container.innerHTML += createCoinCard(coin, 0, 0, true);
-    });
+    cryptoDB.forEach(coin => { if (appState.prices[coin.symbol]) container.innerHTML += createCoinCard(coin, 0, 0, true); });
 }
 
 function createCoinCard(coin, fiatValue, amount, isMarket = false) {
@@ -106,44 +91,164 @@ function createCoinCard(coin, fiatValue, amount, isMarket = false) {
         ? `<h4 class="font-bold text-[15px] text-white">$${priceText}</h4><p class="${pnlClass} font-mono-num text-[11px]">${pnlSign}${parseFloat(data.change).toFixed(2)}%</p>`
         : `<h4 class="font-bold text-[15px] text-white">$${fiatValue.toLocaleString('en-US', {minimumFractionDigits: 2})}</h4><p class="text-gray-500 font-mono-num text-[11px]">${amount.toFixed(4)} ${coin.symbol}</p>`;
 
-    const onClickAttr = isMarket ? `onclick="changeChart('${coin.tvSymbol}')" class="bg-[#141419] p-4 rounded-2xl flex justify-between items-center border border-gray-800/50 hover:bg-gray-800 cursor-pointer transition"` 
-                                 : `class="bg-[#141419] p-4 rounded-2xl flex justify-between items-center border border-gray-800/50"`;
-
-    const fallbackImage = `onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=${coin.symbol}&background=1a1a1a&color=fff';"`;
-
-    return `<div ${onClickAttr}><div class="flex items-center gap-4"><img src="${coin.img}" alt="${coin.symbol}" class="coin-logo" ${fallbackImage}><div><h4 class="font-bold text-[15px] text-white">${coin.symbol}</h4><p class="text-[11px] text-gray-400">${coin.name}</p></div></div><div class="text-right">${rightSide}</div></div>`;
+    const onClickAttr = isMarket ? `onclick="changeChart('${coin.tvSymbol}')" class="cursor-pointer"` : ``;
+    return `<div ${onClickAttr} class="bg-[#141419] p-4 rounded-2xl flex justify-between items-center border border-gray-800/50 ${isMarket?'hover:bg-gray-800 transition':''}"><div class="flex items-center gap-4"><img src="${coin.img}" class="coin-logo" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=${coin.symbol}&background=1a1a1a&color=fff';"><div><h4 class="font-bold text-[15px] text-white">${coin.symbol}</h4><p class="text-[11px] text-gray-400">${coin.name}</p></div></div><div class="text-right">${rightSide}</div></div>`;
 }
 
-// Fitur Baru: Render History Transaksi
+// ============================================
+// FITUR BARU: HISTORY & STRUK DETAIL
+// ============================================
 function renderHistory() {
-    const container = document.getElementById('historyList');
-    if (!container) return;
+    const homeContainer = document.getElementById('homeHistoryList');
+    const fullContainer = document.getElementById('fullHistoryList');
     const history = appState.history || [];
-    if (history.length === 0) {
-        container.innerHTML = `<p class="text-xs text-gray-500 text-center py-4 bg-gray-900/50 rounded-xl">No recent transactions</p>`;
-        return;
-    }
-    container.innerHTML = history.slice(0, 8).map(tx => `
-        <div class="bg-[#141419] p-3 rounded-xl border border-gray-800/50 flex justify-between items-center">
+
+    const emptyHtml = `<p class="text-xs text-gray-500 text-center py-4 bg-gray-900/50 rounded-xl">No transactions yet.</p>`;
+    
+    const mapHistory = (tx) => `
+        <div onclick="showTxDetail('${tx.id}')" class="bg-[#141419] p-3 rounded-xl border border-gray-800/50 flex justify-between items-center cursor-pointer hover:bg-gray-800 transition">
             <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-full ${tx.type==='Send'?'bg-red-500/10 text-red-400':'bg-green-500/10 text-green-400'} flex items-center justify-center">
+                <div class="w-10 h-10 rounded-full ${tx.type==='Send'?'bg-red-500/10 text-red-400':'bg-green-500/10 text-green-400'} flex items-center justify-center text-lg border border-gray-800">
                     <i class="fa-solid ${tx.type==='Send'?'fa-arrow-up':'fa-arrow-down'}"></i>
                 </div>
-                <div><p class="text-[13px] font-bold text-white">${tx.title}</p><p class="text-[9px] text-gray-500 font-mono">TXID: ${tx.id}</p></div>
+                <div><p class="text-[14px] font-bold text-white">${tx.title}</p><p class="text-[10px] text-gray-500 font-mono">${tx.date.split(',')[0]}</p></div>
             </div>
-            <p class="text-[13px] font-bold ${tx.type==='Send'?'text-red-400':'text-green-400'}">${tx.type==='Send'?'-':'+'}$${tx.amount.toLocaleString()}</p>
+            <p class="text-[14px] font-bold font-mono-num ${tx.type==='Send'?'text-white':'text-green-400'}">${tx.type==='Send'?'-':'+'}$${tx.amount.toLocaleString()}</p>
         </div>
-    `).join('');
+    `;
+
+    if(homeContainer) homeContainer.innerHTML = history.length ? history.slice(0, 3).map(mapHistory).join('') : emptyHtml;
+    if(fullContainer) fullContainer.innerHTML = history.length ? history.map(mapHistory).join('') : emptyHtml;
+}
+
+function showTxDetail(txid) {
+    const tx = appState.history.find(t => t.id === txid);
+    if(!tx) return;
+    
+    document.getElementById('txDetailAmount').innerText = `$${tx.amount.toLocaleString()}`;
+    document.getElementById('txDetailTitle').innerText = tx.title;
+    document.getElementById('txDetailDate').innerText = tx.date;
+    document.getElementById('txDetailHash').innerText = tx.id;
+    
+    const iconEl = document.getElementById('txDetailIcon');
+    if(tx.type === 'Send') {
+        iconEl.className = "w-16 h-16 rounded-full mx-auto flex items-center justify-center text-3xl mb-4 border-2 border-red-500/30 bg-red-500/10 text-red-400";
+        iconEl.innerHTML = '<i class="fa-solid fa-arrow-up"></i>';
+    } else {
+        iconEl.className = "w-16 h-16 rounded-full mx-auto flex items-center justify-center text-3xl mb-4 border-2 border-green-500/30 bg-green-500/10 text-green-400";
+        iconEl.innerHTML = '<i class="fa-solid fa-arrow-down"></i>';
+    }
+    
+    toggleModal('txDetailModal');
 }
 
 function addTransaction(title, amount, type) {
     if(!appState.history) appState.history = [];
-    const txid = "0x" + Math.random().toString(16).substr(2, 12).toUpperCase();
-    appState.history.unshift({ title, amount, type, id: txid });
-    saveData();
-    renderHistory();
+    const txid = "0x" + Math.random().toString(16).substr(2, 64).toUpperCase();
+    
+    const dateOpts = { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' };
+    const dateStr = new Date().toLocaleDateString('en-US', dateOpts);
+
+    appState.history.unshift({ title, amount, type, id: txid, date: dateStr });
+    saveData(); renderHistory();
 }
 
+// ============================================
+// FITUR BARU: PIN TRANSAKSI (Action PIN)
+// ============================================
+let actionEnteredPin = "";
+let pendingCallback = null;
+
+function showActionPin(callback) {
+    pendingCallback = callback;
+    clearActionPin();
+    toggleModal('actionPinModal');
+}
+
+function enterActionPin(num) {
+    if(actionEnteredPin.length < 6) { actionEnteredPin += num; updateActionPinUI(); }
+    if(actionEnteredPin.length === 6) verifyActionPin();
+}
+function deleteActionPin() { actionEnteredPin = actionEnteredPin.slice(0, -1); updateActionPinUI(); }
+function clearActionPin() { actionEnteredPin = ""; updateActionPinUI(); }
+function updateActionPinUI() {
+    document.querySelectorAll('.action-dot').forEach((dot, idx) => {
+        if(idx < actionEnteredPin.length) {
+            dot.classList.add('bg-cyan-400', 'border-cyan-400', 'shadow-[0_0_10px_#00f2fe]');
+            dot.classList.remove('bg-gray-800', 'border-gray-600');
+        } else {
+            dot.classList.remove('bg-cyan-400', 'border-cyan-400', 'shadow-[0_0_10px_#00f2fe]');
+            dot.classList.add('bg-gray-800', 'border-gray-600');
+        }
+    });
+}
+function verifyActionPin() {
+    if(actionEnteredPin === CORRECT_PIN) {
+        toggleModal('actionPinModal');
+        showToast("Security Verified ✅");
+        if(pendingCallback) setTimeout(pendingCallback, 500); // Eksekusi transaksi setelah PIN benar
+        pendingCallback = null;
+    } else {
+        showToast("Incorrect PIN! Transaction Aborted.");
+        clearActionPin();
+    }
+}
+
+// ============================================
+// LOGIKA TRANSAKSI YANG DILINDUNGI PIN
+// ============================================
+function handleAction(type) {
+    const body = document.getElementById('actionBody');
+    if(type==='send') body.innerHTML = `<input type="text" placeholder="Wallet Address" class="w-full bg-gray-900 border border-gray-700 rounded-xl p-3 mb-3 text-white"><input type="number" id="sendAmt" placeholder="Amount (USD)" class="w-full bg-gray-900 border border-gray-700 rounded-xl p-3 text-white mb-4"><button onclick="executeSend()" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl">Send Crypto</button>`;
+    else if(type==='receive') body.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=0xVIPAddress" class="mx-auto rounded-xl mb-3"><p class="text-gray-400 font-mono bg-gray-900 p-2 break-all">0xVIPWalletAddress098124509124</p>`;
+    else if(type==='topup') body.innerHTML = `<input type="number" id="topupAmt" placeholder="USD Amount" class="w-full bg-gray-900 border border-gray-700 rounded-xl p-3 text-white mb-4"><button onclick="executeTopUp()" class="w-full bg-green-600 text-white font-bold py-3 rounded-xl">Top Up</button>`;
+    toggleModal('actionModal');
+}
+
+function executeSend() { 
+    const amt = parseFloat(document.getElementById('sendAmt').value); 
+    if(amt>0 && appState.totalBalance >= amt) { 
+        toggleModal('actionModal'); // Tutup layar input
+        showActionPin(() => {       // Minta PIN
+            appState.totalBalance -= amt; 
+            addTransaction("Send Crypto", amt, "Send"); 
+            renderHomeAssets(); 
+            showToast("Transfer Successful!"); 
+        });
+    } else { showToast("Invalid amount/balance!"); }
+}
+
+function executeTopUp() { 
+    const amt = parseFloat(document.getElementById('topupAmt').value); 
+    if(amt>0) { 
+        toggleModal('actionModal'); 
+        showActionPin(() => {
+            appState.totalBalance += amt; 
+            addTransaction("Bank Deposit", amt, "Receive"); 
+            renderHomeAssets(); 
+            showToast(`Top Up $${amt} Success!`); 
+        });
+    } 
+}
+
+function scanQRIS() {
+    showToast("Membuka Kamera...");
+    setTimeout(() => {
+        const amt = prompt("QRIS Terdeteksi! Masukkan nominal pembayaran (USD):");
+        if(amt && !isNaN(amt) && appState.totalBalance >= parseFloat(amt)) {
+            showActionPin(() => { // Minta PIN
+                appState.totalBalance -= parseFloat(amt);
+                addTransaction("QRIS Payment", parseFloat(amt), "Send");
+                renderHomeAssets(); 
+                showToast("Pembayaran QRIS Sukses!");
+            });
+        } else { showToast("Dibatalkan / Saldo Kurang!"); }
+    }, 1000);
+}
+
+// ============================================
+// SYSTEM UTILS
+// ============================================
 function loadSaveData() {
     const saved = localStorage.getItem('mna_vip_wallet');
     if (saved) appState = { ...appState, ...JSON.parse(saved) };
@@ -154,11 +259,10 @@ function loadSaveData() {
 function saveData() { localStorage.setItem('mna_vip_wallet', JSON.stringify(appState)); }
 
 function updateUsernameUI() {
-    const uName = appState.username || "VIP ACCOUNT";
     const headEl = document.getElementById('headerUsername');
     const modEl = document.getElementById('modalUsername');
     const pinEl = document.getElementById('pinUsername');
-    if (headEl) headEl.innerText = uName; if (modEl) modEl.innerText = uName; if (pinEl) pinEl.innerText = `Welcome Back, ${uName.split(' ')[0]}`;
+    if (headEl) headEl.innerText = appState.username; if (modEl) modEl.innerText = appState.username; if (pinEl) pinEl.innerText = `Welcome Back, ${appState.username.split(' ')[0]}`;
 }
 
 function editUsername() {
@@ -169,10 +273,7 @@ function editUsername() {
 function changeChart(symbol) {
     if (typeof TradingView === 'undefined') return;
     document.getElementById('tradingview_mna').innerHTML = '';
-    new TradingView.widget({
-        "autosize": true, "symbol": symbol, "interval": "60", "timezone": "Etc/UTC", "theme": "dark", "style": "1", "locale": "en", "enable_publishing": false,
-        "backgroundColor": "rgba(10, 10, 12, 0)", "gridColor": "rgba(255, 255, 255, 0.05)", "hide_top_toolbar": true, "hide_legend": true, "save_image": false, "container_id": "tradingview_mna"
-    });
+    new TradingView.widget({ "autosize": true, "symbol": symbol, "interval": "60", "theme": "dark", "style": "1", "hide_top_toolbar": true, "hide_legend": true, "container_id": "tradingview_mna", "backgroundColor": "rgba(10, 10, 12, 0)", "gridColor": "rgba(255, 255, 255, 0.05)" });
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -183,6 +284,7 @@ document.getElementById('profileUpload').addEventListener('change', function(eve
     if (file) { const reader = new FileReader(); reader.onload = function(e) { appState.profilePic = e.target.result; updateProfileImages(); saveData(); showToast("Profile Picture Saved!"); }; reader.readAsDataURL(file); }
 });
 
+// Login PIN
 function showPinScreen() { const ps = document.getElementById('pin-screen'); ps.classList.remove('hidden'); setTimeout(() => ps.classList.remove('opacity-0'), 50); }
 function enterPin(num) { if (enteredPin.length < 6) { enteredPin += num; updatePinUI(); } if (enteredPin.length === 6) verifyPin(); }
 function deletePin() { enteredPin = enteredPin.slice(0, -1); updatePinUI(); }
@@ -202,42 +304,10 @@ function navSwitch(pageId) {
     if(pageId !== 'swap') { document.getElementById(`nav-${pageId}`).classList.remove('text-gray-500'); document.getElementById(`nav-${pageId}`).classList.add('text-cyan-400'); }
 }
 
-// Logika Transaksi & History Baru
-function handleAction(type) {
-    const body = document.getElementById('actionBody');
-    if(type==='send') body.innerHTML = `<input type="text" placeholder="Wallet Address" class="w-full bg-gray-900 border border-gray-700 rounded-xl p-3 mb-3 text-white"><input type="number" id="sendAmt" placeholder="Amount (USD)" class="w-full bg-gray-900 border border-gray-700 rounded-xl p-3 text-white mb-4"><button onclick="executeSend()" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl">Send Crypto</button>`;
-    else if(type==='receive') body.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=0xVIPAddress" class="mx-auto rounded-xl mb-3"><p class="text-gray-400 font-mono bg-gray-900 p-2">0xVIP...89A</p>`;
-    else if(type==='topup') body.innerHTML = `<input type="number" id="topupAmt" placeholder="USD Amount" class="w-full bg-gray-900 border border-gray-700 rounded-xl p-3 text-white mb-4"><button onclick="executeTopUp()" class="w-full bg-green-600 text-white font-bold py-3 rounded-xl">Top Up</button>`;
-    toggleModal('actionModal');
-}
-
-function executeSend() { 
-    const amt = parseFloat(document.getElementById('sendAmt').value); 
-    if(amt>0 && appState.totalBalance >= amt) { appState.totalBalance -= amt; addTransaction("Transfer Crypto", amt, "Send"); renderHomeAssets(); toggleModal('actionModal'); showToast("Send Complete!"); } 
-    else { showToast("Invalid amount/balance!"); }
-}
-
-function executeTopUp() { 
-    const amt = parseFloat(document.getElementById('topupAmt').value); 
-    if(amt>0) { appState.totalBalance+=amt; addTransaction("Top Up Deposit", amt, "Receive"); renderHomeAssets(); toggleModal('actionModal'); showToast(`Top Up $${amt} Success!`); } 
-}
-
-function scanQRIS() {
-    showToast("Membuka Kamera...");
-    setTimeout(() => {
-        const amt = prompt("QRIS Terdeteksi! Masukkan nominal pembayaran (USD):");
-        if(amt && !isNaN(amt) && appState.totalBalance >= parseFloat(amt)) {
-            appState.totalBalance -= parseFloat(amt);
-            addTransaction("Bayar QRIS", parseFloat(amt), "Send");
-            renderHomeAssets(); showToast("Pembayaran QRIS Sukses!");
-        } else { showToast("Saldo Tidak Cukup!"); }
-    }, 1000);
-}
-
 function executeSwap() { showToast("Swap Processed"); setTimeout(()=>navSwitch('home'), 1500); }
 function triggerCheatSystem() { if(prompt("Code:")==="MNA2026") { const bal = prompt("New USD Balance:"); if(bal) { appState.totalBalance = parseFloat(bal); saveData(); renderHomeAssets(); showToast("Balance Updated"); } } }
 function toggleModal(id) { const m = document.getElementById(id); if (!m) return; if(m.classList.contains('modal-active')) { m.classList.remove('modal-active'); setTimeout(()=>m.style.display='none',300); } else { m.style.display='block'; setTimeout(()=>m.classList.add('modal-active'),10); } }
-function showToast(msg) { const container = document.getElementById('toast-container'); const toast = document.createElement('div'); toast.className = 'bg-gray-800 text-white px-6 py-3 rounded-full shadow-lg border border-gray-700 text-sm font-semibold toast-enter flex items-center gap-3'; toast.innerHTML = `<i class="fa-solid fa-bell text-blue-400"></i> ${msg}`; container.appendChild(toast); setTimeout(() => { toast.style.opacity='0'; setTimeout(()=>toast.remove(),500); }, 3000); }
+function showToast(msg) { const container = document.getElementById('toast-container'); const toast = document.createElement('div'); toast.className = 'bg-gray-800 text-white px-6 py-3 rounded-full shadow-lg border border-gray-700 text-sm font-semibold toast-enter flex items-center gap-3 z-[99999]'; toast.innerHTML = `<i class="fa-solid fa-bell text-blue-400"></i> ${msg}`; container.appendChild(toast); setTimeout(() => { toast.style.opacity='0'; setTimeout(()=>toast.remove(),500); }, 3000); }
 
 document.addEventListener('DOMContentLoaded', () => {
     loadSaveData();

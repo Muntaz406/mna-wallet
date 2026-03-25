@@ -14,7 +14,7 @@
     <div id="toast-container" class="fixed top-5 left-0 right-0 z-[99999] flex flex-col items-center pointer-events-none space-y-2"></div>
     <input type="file" id="profileUpload" accept="image/*" class="hidden">
 
-    <!-- Splash Screen Tetap Sama -->
+    <!-- Splash Screen -->
     <div id="splash-screen">
         <div class="w-24 h-24 rounded-3xl bg-gradient-to-tr from-blue-600 to-cyan-400 flex items-center justify-center mb-6 shadow-2xl pulse-glow">
             <i class="fa-solid fa-wallet text-5xl text-white"></i>
@@ -23,7 +23,7 @@
         <p class="text-sm tracking-widest gradient-text font-semibold">SECURE WALLET</p>
     </div>
 
-    <!-- PIN Screen Tetap Sama -->
+    <!-- Login PIN Screen -->
     <div id="pin-screen" class="fixed inset-0 bg-[#0a0a0c] z-[9000] flex flex-col items-center justify-center hidden opacity-0 transition-opacity duration-500">
         <img id="pinProfileImg" src="" alt="Profile" class="w-24 h-24 rounded-full border-4 border-blue-500 mb-6 object-cover shadow-[0_0_20px_rgba(0,102,255,0.5)]">
         <h2 id="pinUsername" class="text-2xl font-bold mb-2">Welcome Back</h2>
@@ -69,7 +69,6 @@
                 </div>
             </div>
             
-            <!-- Tambahan Fitur: Network Selector -->
             <div class="flex gap-3 items-center text-xl text-gray-400">
                 <select class="bg-gray-800 text-white text-[10px] px-2 py-1 rounded-md border border-gray-700 outline-none font-bold">
                     <option>BSC (BEP20)</option>
@@ -81,6 +80,7 @@
             </div>
         </header>
 
+        <!-- PAGE: HOME -->
         <div id="page-home" class="page-view block">
             <div class="glass-card p-7 mb-8 relative overflow-hidden">
                 <p class="text-sm text-gray-400 font-medium mb-2 relative z-10">Total Balance</p>
@@ -88,7 +88,6 @@
                     $<span id="totalBalance">0.00</span>
                 </h1>
                 
-                <!-- PNL Indicator -->
                 <div class="flex items-center gap-2 mb-8 relative z-10">
                     <div class="px-3 py-1 rounded-md bg-white/5 border border-white/10 flex items-center gap-2">
                         <i id="pnlIcon" class="fa-solid fa-caret-up text-profit"></i>
@@ -96,7 +95,6 @@
                     </div>
                 </div>
                 
-                <!-- Tambahan Fitur: Tombol QRIS -->
                 <div class="grid grid-cols-4 gap-2 relative z-10">
                     <button onclick="handleAction('send')" class="btn-action py-3 rounded-xl flex flex-col items-center gap-2"><div class="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400"><i class="fa-solid fa-arrow-up"></i></div><span class="text-[10px] font-semibold text-gray-300">Send</span></button>
                     <button onclick="handleAction('receive')" class="btn-action py-3 rounded-xl flex flex-col items-center gap-2"><div class="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400"><i class="fa-solid fa-arrow-down"></i></div><span class="text-[10px] font-semibold text-gray-300">Receive</span></button>
@@ -108,12 +106,14 @@
             <h3 class="text-sm font-bold text-gray-400 mb-4">YOUR PORTFOLIO</h3>
             <div id="homeAssetList" class="space-y-4 mb-8"></div>
 
-            <!-- Tambahan Fitur: Riwayat Transaksi -->
-            <h3 class="text-sm font-bold text-gray-400 mb-4 mt-8">RECENT TRANSACTIONS</h3>
-            <div id="historyList" class="space-y-3 mb-10"></div>
+            <div class="flex justify-between items-center mb-4 mt-8">
+                <h3 class="text-sm font-bold text-gray-400">RECENT TRANSACTIONS</h3>
+                <button onclick="navSwitch('history')" class="text-xs text-blue-400 font-bold">See All</button>
+            </div>
+            <div id="homeHistoryList" class="space-y-3 mb-10"></div>
         </div>
 
-        <!-- Halaman Markets, Swap, Discover, Navigasi, Modal (Tetap Sama) -->
+        <!-- PAGE: MARKETS -->
         <div id="page-markets" class="page-view hidden">
             <h2 class="text-2xl font-bold text-white mb-4">Live Markets</h2>
             <div class="glass-card mb-6 overflow-hidden relative" style="height: 320px; padding: 10px;">
@@ -123,6 +123,7 @@
             <div id="marketAssetList" class="space-y-3 mb-10"></div>
         </div>
 
+        <!-- PAGE: SWAP -->
         <div id="page-swap" class="page-view hidden">
             <h2 class="text-2xl font-bold text-white mb-6">Swap Assets</h2>
             <div class="glass-card p-5 mb-4 relative">
@@ -143,19 +144,15 @@
             <button onclick="executeSwap()" class="w-full py-4 bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-bold rounded-xl text-lg shadow-lg shadow-blue-500/30">Review Swap</button>
         </div>
 
-        <div id="page-discover" class="page-view hidden">
-            <h2 class="text-2xl font-bold text-white mb-6">Discover</h2>
-            <div class="bg-gradient-to-r from-purple-900/50 to-blue-900/50 p-6 rounded-2xl border border-purple-500/30 mb-6">
-                <span class="px-2 py-1 bg-purple-500/20 text-purple-400 text-[10px] font-bold rounded mb-2 inline-block">HOT AIRDROP</span>
-                <h3 class="text-lg font-bold text-white mb-1">Claim Free 10,000 $MNA</h3>
-                <p class="text-xs text-gray-400 mb-4">Exclusive for VIP Wallet users.</p>
-                <button onclick="showToast('Airdrop Claimed Successfully!')" class="px-4 py-2 bg-purple-600 text-white rounded-lg text-xs font-bold">Claim Now</button>
-            </div>
+        <!-- PAGE: HISTORY (Baru) -->
+        <div id="page-history" class="page-view hidden">
+            <h2 class="text-2xl font-bold text-white mb-6">Transaction History</h2>
+            <div id="fullHistoryList" class="space-y-3 mb-10"></div>
         </div>
 
     </div>
 
-    <!-- Navigasi Bawah Tetap Sama -->
+    <!-- Navigasi Bawah -->
     <nav class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-[#0a0a0c]/95 backdrop-blur-lg border-t border-gray-800 z-50">
         <div class="flex justify-around items-center py-4 px-2">
             <button onclick="navSwitch('home')" id="nav-home" class="nav-btn flex flex-col items-center gap-1 text-cyan-400">
@@ -169,8 +166,8 @@
                     <i class="fa-solid fa-right-left"></i>
                 </button>
             </div>
-            <button onclick="navSwitch('discover')" id="nav-discover" class="nav-btn flex flex-col items-center gap-1 text-gray-500">
-                <i class="fa-solid fa-compass text-xl"></i><span class="text-[10px] font-semibold">Discover</span>
+            <button onclick="navSwitch('history')" id="nav-history" class="nav-btn flex flex-col items-center gap-1 text-gray-500">
+                <i class="fa-solid fa-clock-rotate-left text-xl"></i><span class="text-[10px] font-semibold">History</span>
             </button>
             <button onclick="toggleModal('profileModal')" class="flex flex-col items-center gap-1 text-gray-500">
                 <i class="fa-solid fa-user text-xl"></i><span class="text-[10px] font-semibold">Profile</span>
@@ -178,6 +175,7 @@
         </div>
     </nav>
 
+    <!-- MODAL: Action Input -->
     <div id="actionModal" class="modal-overlay">
         <div class="modal-content text-center">
             <div class="w-12 h-1 bg-gray-600 rounded-full mx-auto mb-6"></div>
@@ -187,6 +185,61 @@
         </div>
     </div>
 
+    <!-- MODAL: Transaction Detail (Struk) -->
+    <div id="txDetailModal" class="modal-overlay">
+        <div class="modal-content text-center">
+            <div class="w-12 h-1 bg-gray-600 rounded-full mx-auto mb-4"></div>
+            <h2 class="text-lg font-bold text-white mb-6">Transaction Detail</h2>
+            <div id="txDetailIcon" class="w-16 h-16 rounded-full mx-auto flex items-center justify-center text-3xl mb-4 border-2"></div>
+            <h2 id="txDetailAmount" class="text-3xl font-extrabold font-mono-num text-white mb-1"></h2>
+            <p id="txDetailTitle" class="text-gray-400 mb-6 font-semibold"></p>
+            <div class="bg-gray-900 rounded-xl p-4 space-y-4 text-left mb-6 border border-gray-800">
+                <div class="flex justify-between items-center"><span class="text-gray-500 text-sm">Status</span><span class="text-green-400 text-sm font-bold bg-green-500/10 px-2 py-1 rounded">Completed</span></div>
+                <div class="flex justify-between items-center"><span class="text-gray-500 text-sm">Date</span><span id="txDetailDate" class="text-white text-xs font-mono"></span></div>
+                <div class="flex flex-col gap-1 mt-2 pt-3 border-t border-gray-800">
+                    <span class="text-gray-500 text-sm">Transaction ID (TXID)</span>
+                    <span id="txDetailHash" class="text-xs text-cyan-400 font-mono break-all bg-black p-2 rounded"></span>
+                </div>
+            </div>
+            <button onclick="toggleModal('txDetailModal')" class="w-full py-3 bg-gray-800 rounded-xl text-white font-bold">Close Details</button>
+        </div>
+    </div>
+
+    <!-- MODAL: Action PIN Verifier -->
+    <div id="actionPinModal" class="modal-overlay z-[9500]">
+        <div class="modal-content flex flex-col items-center justify-center pb-10">
+            <div class="w-12 h-1 bg-gray-600 rounded-full mx-auto mb-6"></div>
+            <h2 class="text-xl font-bold mb-2 text-white">Security Verification</h2>
+            <p class="text-gray-400 text-sm mb-6">Enter PIN to authorize transaction</p>
+            
+            <div class="flex gap-4 mb-8" id="action-pin-dots">
+                <div class="w-4 h-4 rounded-full bg-gray-800 border border-gray-600 action-dot transition-all"></div>
+                <div class="w-4 h-4 rounded-full bg-gray-800 border border-gray-600 action-dot transition-all"></div>
+                <div class="w-4 h-4 rounded-full bg-gray-800 border border-gray-600 action-dot transition-all"></div>
+                <div class="w-4 h-4 rounded-full bg-gray-800 border border-gray-600 action-dot transition-all"></div>
+                <div class="w-4 h-4 rounded-full bg-gray-800 border border-gray-600 action-dot transition-all"></div>
+                <div class="w-4 h-4 rounded-full bg-gray-800 border border-gray-600 action-dot transition-all"></div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-6 max-w-xs mx-auto">
+                <button class="numpad-btn" onclick="enterActionPin('1')">1</button>
+                <button class="numpad-btn" onclick="enterActionPin('2')">2</button>
+                <button class="numpad-btn" onclick="enterActionPin('3')">3</button>
+                <button class="numpad-btn" onclick="enterActionPin('4')">4</button>
+                <button class="numpad-btn" onclick="enterActionPin('5')">5</button>
+                <button class="numpad-btn" onclick="enterActionPin('6')">6</button>
+                <button class="numpad-btn" onclick="enterActionPin('7')">7</button>
+                <button class="numpad-btn" onclick="enterActionPin('8')">8</button>
+                <button class="numpad-btn" onclick="enterActionPin('9')">9</button>
+                <button class="numpad-btn text-red-500 text-sm font-bold" onclick="clearActionPin()">C</button>
+                <button class="numpad-btn" onclick="enterActionPin('0')">0</button>
+                <button class="numpad-btn text-gray-500" onclick="deleteActionPin()"><i class="fa-solid fa-delete-left"></i></button>
+            </div>
+            <button onclick="toggleModal('actionPinModal'); clearActionPin();" class="mt-8 text-red-500 font-bold">Cancel Transaction</button>
+        </div>
+    </div>
+
+    <!-- MODAL: Profile Settings (Tetap) -->
     <div id="profileModal" class="modal-overlay">
         <div class="modal-content">
             <div class="w-12 h-1 bg-gray-600 rounded-full mx-auto mb-6"></div>
