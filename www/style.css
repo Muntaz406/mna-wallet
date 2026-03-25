@@ -1,14 +1,19 @@
-body {
-    background-color: #121212; color: white; font-family: Arial, sans-serif; margin: 0; padding: 20px;
-}
-.header { display: flex; justify-content: space-between; align-items: center; }
-select { background: #333; color: gold; border: none; padding: 5px; border-radius: 5px;}
-.card { background: linear-gradient(45deg, #1a1a1a, #333); padding: 20px; border-radius: 15px; text-align: center; border: 1px solid gold; margin-top: 20px;}
-h1 { color: gold; margin: 10px 0;}
-.action-buttons { display: flex; justify-content: space-around; margin-top: 20px; }
-button { background: gold; color: black; border: none; padding: 10px 20px; border-radius: 10px; font-weight: bold; cursor: pointer;}
-.history-section { margin-top: 30px; }
-ul { list-style: none; padding: 0; }
-li { background: #222; margin-bottom: 10px; padding: 10px; border-radius: 8px; border-left: 3px solid gold; }
-small { color: #888; }
+body { background: #0b0b0b; color: #fff; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 15px; }
+.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.avatar { width: 35px; height: 35px; background: gold; border-radius: 50%; color: #000; text-align: center; line-height: 35px; font-weight: bold; margin-right: 10px; }
+.user-info { display: flex; align-items: center; font-weight: bold; color: gold;}
+.network-badge { background: #222; color: gold; border: 1px solid #444; padding: 5px; border-radius: 8px; font-size: 12px; }
+.balance-card { background: linear-gradient(135deg, #1a1a1a 0%, #000 100%); padding: 25px; border-radius: 20px; border: 1px solid #333; text-align: center; margin-bottom: 25px; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
+.balance-card h1 { font-size: 32px; margin: 10px 0; color: gold; }
+.pnl-badge { display: inline-block; padding: 5px 15px; border-radius: 20px; font-size: 14px; font-weight: bold; margin-top: 10px;}
+.main-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 25px; }
+.btn-action { background: #222; color: #fff; border: 1px solid #444; padding: 12px; border-radius: 12px; font-weight: bold; font-size: 16px; cursor: pointer;}
+.qr-btn { grid-column: span 2; background: gold; color: #000; }
+.history-card { background: #151515; border-radius: 20px; padding: 15px; }
+.history-card h3 { color: gold; margin-top: 0;}
+.history-item { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #222; }
+.tx-info { display: flex; flex-direction: column; }
+.tx-type { font-weight: bold; font-size: 14px; }
+.tx-id { font-size: 10px; color: #aaa; margin-top: 3px; }
+.tx-amount { font-weight: bold; color: gold; }
 

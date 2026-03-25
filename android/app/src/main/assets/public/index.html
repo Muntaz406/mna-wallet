@@ -7,32 +7,39 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="header">
-        <h2>MNA Wallet</h2>
-        <select id="networkSelect">
-            <option value="BSC">BSC (BEP20)</option>
-            <option value="ETH">Ethereum (ERC20)</option>
-            <option value="TRX">Tron (TRC20)</option>
-        </select>
-    </div>
+    <div class="app-container">
+        <div class="header">
+            <div class="user-info">
+                <div class="avatar">M</div>
+                <span>MNA Wallet (Muntaz406)</span>
+            </div>
+            <select id="networkSelect" class="network-badge">
+                <option value="BSC">BSC (BEP20)</option>
+                <option value="ETH">Ethereum (ERC20)</option>
+                <option value="TRX">Tron (TRC20)</option>
+                <option value="SOL">Solana</option>
+            </select>
+        </div>
 
-    <div class="card">
-        <p>Total Saldo Aktif</p>
-        <h1 id="totalBalance">Rp 0</h1>
-        <p id="pnlDisplay" class="pnl">PNL: Menghitung...</p>
-    </div>
+        <div class="balance-card">
+            <p>Total Portfolio Value</p>
+            <h1 id="totalBalance">Rp 0</h1>
+            <div id="pnlBox" class="pnl-badge">PNL: Loading...</div>
+        </div>
 
-    <div class="action-buttons">
-        <button onclick="simulateTransfer('Send')">Kirim</button>
-        <button onclick="simulateTransfer('Receive')">Terima</button>
-        <button onclick="scanQRIS()">📷 Scan QRIS</button>
-    </div>
+        <div class="main-actions">
+            <button class="btn-action" onclick="simulateTransfer('Kirim')">📤 Send</button>
+            <button class="btn-action" onclick="simulateTransfer('Terima')">📥 Receive</button>
+            <button class="btn-action qr-btn" onclick="scanQRIS()">📷 Scan QRIS</button>
+        </div>
 
-    <div class="history-section">
-        <h3>Riwayat Transaksi</h3>
-        <ul id="historyList"></ul>
+        <div class="history-card">
+            <h3>Riwayat Transaksi</h3>
+            <div id="historyList" class="history-list">
+                <!-- Riwayat otomatis muncul di sini -->
+            </div>
+        </div>
     </div>
-
     <script src="script.js"></script>
 </body>
 </html>
