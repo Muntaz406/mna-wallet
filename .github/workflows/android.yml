@@ -10,7 +10,7 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-      - name: Install Dependencies
+      - name: Install Node
         run: npm install
       - name: Build APK
         run: cd android && ./gradlew assembleDebug
@@ -19,5 +19,4 @@ jobs:
         with:
           name: MNA-Wallet-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
-
 
