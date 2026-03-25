@@ -1,0 +1,90 @@
+:root {
+    --bg-main: #0a0a0c; 
+    --bg-card: #141419;
+    --accent-blue: #0066ff; 
+    --accent-cyan: #00f2fe;
+    --text-main: #ffffff; 
+    --profit: #0ecb81; 
+    --loss: #f6465d;
+}
+
+body { 
+    background-color: var(--bg-main); 
+    color: var(--text-main); 
+    font-family: 'Inter', sans-serif; 
+    overflow-x: hidden; 
+    -webkit-tap-highlight-color: transparent; 
+}
+
+.font-mono-num { font-family: 'Space Grotesk', monospace; }
+
+.glass-card { 
+    background: linear-gradient(145deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%); 
+    backdrop-filter: blur(20px); 
+    border: 1px solid rgba(255,255,255,0.05); 
+    border-radius: 24px; 
+}
+
+.gradient-text { 
+    background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue)); 
+    -webkit-background-clip: text; 
+    -webkit-text-fill-color: transparent; 
+}
+
+.btn-action { 
+    background: rgba(255,255,255,0.05); 
+    border: 1px solid rgba(255,255,255,0.1); 
+    transition: all 0.2s; 
+}
+
+.btn-action:active { 
+    transform: scale(0.92); 
+    background: rgba(255,255,255,0.1); 
+}
+
+.text-profit { color: var(--profit); } 
+.text-loss { color: var(--loss); }
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideDownToast { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@keyframes pulse-glow { 0%, 100% { box-shadow: 0 0 20px rgba(0, 242, 254, 0.2); } 50% { box-shadow: 0 0 40px rgba(0, 242, 254, 0.5); } }
+
+.animate-fade { animation: fadeIn 0.5s ease forwards; }
+.animate-slide { animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.toast-enter { animation: slideDownToast 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.pulse-glow { animation: pulse-glow 2s infinite; }
+
+::-webkit-scrollbar { display: none; }
+
+#splash-screen { 
+    position: fixed; inset: 0; background-color: var(--bg-main); z-index: 9999; 
+    display: flex; flex-direction: column; justify-content: center; align-items: center; transition: opacity 0.8s; 
+}
+
+.modal-overlay { 
+    position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); 
+    z-index: 1000; display: none; opacity: 0; transition: opacity 0.3s ease; 
+}
+
+.modal-content { 
+    position: absolute; bottom: 0; left: 0; right: 0; background: var(--bg-card); 
+    border-radius: 30px 30px 0 0; padding: 30px 20px; transform: translateY(100%); 
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); border-top: 1px solid rgba(255,255,255,0.1); 
+}
+
+.modal-active { display: block; opacity: 1; } 
+.modal-active .modal-content { transform: translateY(0); }
+
+.numpad-btn { 
+    width: 70px; height: 70px; border-radius: 35px; background: rgba(255,255,255,0.05); 
+    color: white; font-size: 24px; font-weight: 600; display: flex; justify-content: center; align-items: center; transition: all 0.1s; 
+}
+
+.numpad-btn:active { background: rgba(255,255,255,0.2); transform: scale(0.9); }
+.pin-dot.filled { background: var(--accent-cyan); border-color: var(--accent-cyan); box-shadow: 0 0 10px var(--accent-cyan); }
+
+.coin-logo { 
+    width: 44px; height: 44px; border-radius: 50%; object-fit: cover; 
+    background-color: #1a1a1a; padding: 2px; border: 1px solid rgba(255,255,255,0.1);
+}
+
