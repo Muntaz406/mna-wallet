@@ -23,7 +23,8 @@ let appState = {
     profilePic: DEFAULT_AVATAR,
     shares: { 'BTC': 0.4, 'ETH': 0.3, 'SOL': 0.1, 'PEPE': 0.1, 'USDT': 0.1 },
     prices: {},
-    history: [] 
+    history: [],
+    newsData: [] // Untuk menyimpan data berita In-App
 };
 
 // ============================================
@@ -32,7 +33,6 @@ let appState = {
 function formatCurrencyDisplay(usdAmount, forceSymbol = false) {
     const curr = appState.baseCurrency || 'USD';
     let finalAmount = 0; let symbol = currSymbols[curr] || curr + ' ';
-
     if (fiatRates[curr]) {
         finalAmount = usdAmount * fiatRates[curr];
         const isBigFiat = (curr === 'IDR' || curr === 'JPY');
@@ -73,14 +73,13 @@ async function fetchLivePrices() {
 }
 
 // ============================================
-// FETCH REAL-TIME CRYPTO NEWS (ANTI-BLOKIR & BHS INDONESIA)
+// IN-APP NEWS READER (FITUR BARU)
 // ============================================
 async function fetchCryptoNews() {
     const newsContainer = document.getElementById('newsList');
     if(!newsContainer) return;
 
     try {
-        // Jalur khusus ke RSS berita Kripto Indonesia (Otomatis Bahasa Indonesia, Kebal CORS)
         const rssUrl = 'https://portalkripto.com/feed/'; 
         const response = await fetch('https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(rssUrl));
 
@@ -92,18 +91,17 @@ async function fetchCryptoNews() {
             return;
         }
 
+        // Simpan berita ke memori agar bisa dibaca In-App
+        appState.newsData = data.items.slice(0, 15);
         let html = '';
-        const articles = data.items.slice(0, 15); // Ambil 15 berita terhangat
         
-        articles.forEach(article => {
-            // Mengambil jam rilis dari format data
+        appState.newsData.forEach((article, index) => {
             const pubTime = article.pubDate.split(' ')[1] ? article.pubDate.split(' ')[1].substring(0,5) : 'Baru saja';
-            
-            // Ambil gambar jika tersedia, kalau tidak pakai gambar cadangan
             let imgUrl = article.thumbnail || (article.enclosure ? article.enclosure.link : 'https://ui-avatars.com/api/?name=Berita+Crypto&background=1a1a1a&color=00f2fe');
 
+            // KLIK UNTUK MEMBUKA IN-APP READER
             html += `
-            <div onclick="window.open('${article.link}', '_system')" class="bg-[#141419] p-3 rounded-xl border border-gray-800/50 flex gap-4 cursor-pointer hover:bg-gray-800 transition mb-3">
+            <div onclick="openNewsArticle(${index})" class="bg-[#141419] p-3 rounded-xl border border-gray-800/50 flex gap-4 cursor-pointer hover:bg-gray-800 transition mb-3">
                 <div class="w-20 h-20 flex-shrink-0">
                     <img src="${imgUrl}" class="w-full h-full object-cover rounded-lg border border-gray-700" onerror="this.src='https://ui-avatars.com/api/?name=News&background=1a1a1a&color=fff'">
                 </div>
@@ -131,8 +129,44 @@ async function fetchCryptoNews() {
     }
 }
 
+// Menampilkan Berita Full Screen Dalam Aplikasi
+function openNewsArticle(index) {
+    const article = appState.newsData[index];
+    if(!article) return;
+    
+    // Set Detail Tampilan
+    const imgUrl = article.thumbnail || (article.enclosure ? article.enclosure.link : 'https://ui-avatars.com/api/?name=Berita+Crypto&background=1a1a1a&color=00f2fe');
+    document.getElementById('newsReadImg').src = imgUrl;
+    document.getElementById('newsReadTitle').innerText = article.title;
+    document.getElementById('newsReadTime').innerText = article.pubDate.split(' ')[1] ? article.pubDate.split(' ')[1].substring(0,5) : '';
+    
+    // Set Isi Konten Artikel
+    const contentHtml = article.content || article.description || "<p>Gagal memuat isi artikel.</p>";
+    
+    // Tambah tombol buka di browser untuk jaga-jaga kalau user butuh link aslinya
+    const externalLinkBtn = `<br><button onclick="window.open('${article.link}', '_system')" class="w-full py-3 bg-gray-800 rounded-xl text-cyan-400 font-bold mt-4 border border-gray-700">Buka di Browser Asli</button>`;
+    
+    document.getElementById('newsReadContent').innerHTML = contentHtml + externalLinkBtn;
+
+    // Tampilkan Modal Full Screen
+    const modal = document.getElementById('newsDetailModal');
+    modal.style.display = 'flex';
+    setTimeout(() => modal.classList.remove('translate-y-full'), 10);
+}
+
+// Tutup Artikel
+function closeNewsArticle() {
+    const modal = document.getElementById('newsDetailModal');
+    modal.classList.add('translate-y-full');
+    setTimeout(() => {
+        modal.style.display = 'none';
+        document.getElementById('newsReadContent').innerHTML = ''; // bersihkan memori
+    }, 300);
+}
+
+
 // ============================================
-// RENDERING
+// RENDERING UI UTAMA
 // ============================================
 function renderHomeAssets() {
     const totalEl = document.getElementById('totalBalance');

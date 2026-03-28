@@ -8,6 +8,15 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <!-- CSS Tambahan Khusus Untuk Teks Berita -->
+    <style>
+        .article-content img { max-width: 100%; height: auto; border-radius: 12px; margin: 15px 0; border: 1px solid #333; }
+        .article-content p { margin-bottom: 15px; font-size: 14px; line-height: 1.6; }
+        .article-content a { color: #00f2fe; text-decoration: none; font-weight: bold; }
+        .article-content h1, .article-content h2, .article-content h3 { color: white; font-weight: bold; margin: 20px 0 10px 0; }
+        .article-content ul, .article-content ol { margin-left: 20px; margin-bottom: 15px; }
+        .article-content li { margin-bottom: 5px; }
+    </style>
 </head>
 <body class="pb-24">
 
@@ -134,12 +143,12 @@
             <div id="marketAssetList" class="space-y-3 mb-10"></div>
         </div>
 
-        <!-- PAGE: NEWS (FITUR BARU) -->
+        <!-- PAGE: NEWS -->
         <div id="page-news" class="page-view hidden">
             <h2 class="text-2xl font-bold text-white mb-2">Crypto News</h2>
-            <p class="text-xs text-gray-400 mb-6">Real-time updates from top global sources.</p>
+            <p class="text-xs text-gray-400 mb-6">Real-time updates dari PortalKripto.</p>
             <div id="newsList" class="pb-10">
-                <p class="text-center text-gray-500 py-10"><i class="fa-solid fa-circle-notch fa-spin text-3xl mb-3"></i><br>Fetching latest news...</p>
+                <p class="text-center text-gray-500 py-10"><i class="fa-solid fa-circle-notch fa-spin text-3xl mb-3"></i><br>Memuat berita terbaru...</p>
             </div>
         </div>
 
@@ -172,7 +181,7 @@
 
     </div>
 
-    <!-- Navigasi Bawah (Dengan Tambahan Icon News) -->
+    <!-- Navigasi Bawah -->
     <nav class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-[#0a0a0c]/95 backdrop-blur-lg border-t border-gray-800 z-50">
         <div class="flex justify-between items-center py-4 px-4">
             <button onclick="navSwitch('home')" id="nav-home" class="nav-btn flex flex-col items-center gap-1 text-cyan-400">
@@ -197,6 +206,25 @@
             </button>
         </div>
     </nav>
+
+    <!-- MODAL: Full Screen News Reader (FITUR BARU) -->
+    <div id="newsDetailModal" class="fixed inset-0 bg-[#0a0a0c] z-[99999] flex-col transition-transform transform translate-y-full duration-300 shadow-2xl" style="display: none;">
+        <div class="flex items-center justify-between p-4 border-b border-gray-800 bg-[#141419]">
+            <button onclick="closeNewsArticle()" class="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center text-white"><i class="fa-solid fa-arrow-left"></i></button>
+            <h3 class="text-white font-bold text-sm">Berita Kripto</h3>
+            <div class="w-10"></div>
+        </div>
+        <div class="flex-1 overflow-y-auto p-5 pb-20">
+            <img id="newsReadImg" src="" class="w-full h-48 object-cover rounded-xl mb-4 border border-gray-800">
+            <h1 id="newsReadTitle" class="text-xl font-bold text-white mb-3 leading-snug"></h1>
+            <div class="flex items-center gap-2 mb-6">
+                <span class="text-[10px] text-cyan-400 font-bold bg-cyan-400/10 px-2 py-0.5 rounded">PortalKripto ID</span>
+                <span id="newsReadTime" class="text-[10px] text-gray-500"></span>
+            </div>
+            <!-- Teks artikel akan muncul di sini -->
+            <div id="newsReadContent" class="text-gray-300 article-content"></div>
+        </div>
+    </div>
 
     <!-- MODAL: Action Input -->
     <div id="actionModal" class="modal-overlay">
@@ -234,7 +262,6 @@
             <div class="w-12 h-1 bg-gray-600 rounded-full mx-auto mb-6"></div>
             <h2 class="text-xl font-bold mb-2 text-white">Security Verification</h2>
             <p class="text-gray-400 text-sm mb-6">Enter PIN to authorize transaction</p>
-            
             <div class="flex gap-4 mb-8" id="action-pin-dots">
                 <div class="w-4 h-4 rounded-full bg-gray-800 border border-gray-600 action-dot transition-all"></div>
                 <div class="w-4 h-4 rounded-full bg-gray-800 border border-gray-600 action-dot transition-all"></div>
@@ -243,7 +270,6 @@
                 <div class="w-4 h-4 rounded-full bg-gray-800 border border-gray-600 action-dot transition-all"></div>
                 <div class="w-4 h-4 rounded-full bg-gray-800 border border-gray-600 action-dot transition-all"></div>
             </div>
-
             <div class="grid grid-cols-3 gap-6 max-w-xs mx-auto">
                 <button class="numpad-btn" onclick="enterActionPin('1')">1</button>
                 <button class="numpad-btn" onclick="enterActionPin('2')">2</button>
