@@ -73,26 +73,39 @@ async function fetchLivePrices() {
 }
 
 // ============================================
-// FETCH REAL-TIME CRYPTO NEWS (FITUR BARU)
+// FETCH REAL-TIME CRYPTO NEWS (FIXED & ROBUST)
 // ============================================
 async function fetchCryptoNews() {
+    const newsContainer = document.getElementById('newsList');
+    if(!newsContainer) return;
+
     try {
         // Menggunakan CryptoCompare Global News API (Real-Time Tanpa Limit Ketat)
-        const res = await fetch('https://min-api.cryptocompare.com/data/v2/news/?lang=EN');
-        const data = await res.json();
-        const newsContainer = document.getElementById('newsList');
-        if(!newsContainer) return;
+        const response = await fetch('https://min-api.cryptocompare.com/data/v2/news/?lang=EN&t=' + Date.now(), {
+            method: 'GET',
+            mode: 'cors'
+        });
+
+        if (!response.ok) throw new Error("Network response was not ok");
+        
+        const data = await response.json();
+        
+        if(!data.Data || data.Data.length === 0) {
+            newsContainer.innerHTML = `<p class="text-center text-gray-500 py-10">Tidak ada berita tersedia saat ini.</p>`;
+            return;
+        }
 
         let html = '';
-        const articles = data.Data.slice(0, 25); // Ambil 25 berita terbaru
+        const articles = data.Data.slice(0, 20); // Ambil 20 berita
         
         articles.forEach(article => {
-            // Waktu rilis (jam & menit)
             const timeString = new Date(article.published_on * 1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
             
             html += `
             <div onclick="window.open('${article.url}', '_blank')" class="bg-[#141419] p-3 rounded-xl border border-gray-800/50 flex gap-4 cursor-pointer hover:bg-gray-800 transition mb-3">
-                <img src="${article.imageurl}" class="w-20 h-20 object-cover rounded-lg border border-gray-700" onerror="this.src='https://ui-avatars.com/api/?name=News&background=1a1a1a&color=fff'">
+                <div class="w-20 h-20 flex-shrink-0">
+                    <img src="${article.imageurl}" class="w-full h-full object-cover rounded-lg border border-gray-700" onerror="this.src='https://ui-avatars.com/api/?name=News&background=1a1a1a&color=fff'">
+                </div>
                 <div class="flex-1 flex flex-col justify-between">
                     <h4 class="text-white text-[13px] font-bold leading-tight line-clamp-2 mb-1">${article.title}</h4>
                     <div class="flex justify-between items-center mt-auto">
@@ -104,8 +117,16 @@ async function fetchCryptoNews() {
             `;
         });
         newsContainer.innerHTML = html;
+
     } catch(e) {
-        document.getElementById('newsList').innerHTML = `<p class="text-center text-gray-500 py-10">Gagal memuat berita. Periksa internet.</p>`;
+        console.error("News Error:", e);
+        newsContainer.innerHTML = `
+            <div class="text-center py-10">
+                <i class="fa-solid fa-triangle-exclamation text-red-500 text-2xl mb-2"></i>
+                <p class="text-gray-500 text-xs">Gagal memuat berita.<br>Pastikan internet HP kamu aktif.</p>
+                <button onclick="fetchCryptoNews()" class="mt-4 px-4 py-2 bg-gray-800 text-white rounded-lg text-[10px] font-bold">Coba Lagi</button>
+            </div>
+        `;
     }
 }
 
@@ -303,6 +324,6 @@ document.addEventListener('DOMContentLoaded', () => {
     loadSaveData();
     setTimeout(() => { document.getElementById('splash-screen').style.opacity = '0'; setTimeout(() => { document.getElementById('splash-screen').style.display = 'none'; showPinScreen(); }, 800); }, 1500);
 });
-setInterval(fetchLivePrices, 20000); // Update harga per 20 detik
-setInterval(fetchCryptoNews, 60000); // Update berita otomatis setiap menit
+setInterval(fetchLivePrices, 20000);
+setInterval(fetchCryptoNews, 60000);
 
