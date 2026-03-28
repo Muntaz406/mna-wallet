@@ -13,15 +13,64 @@ const cryptoDB = [
     { id: 'pepe', symbol: 'PEPE', name: 'Pepe', defaultPrice: 0.000008, img: 'https://assets.coingecko.com/coins/images/29850/standard/pepe-token.jpeg', tvSymbol: 'BINANCE:PEPEUSDT' }
 ];
 
+// Mata uang Fiat statis untuk backup konversi dunia nyata
+const fiatRates = { USD: 1, IDR: 15650, EUR: 0.92, JPY: 151, GBP: 0.79 };
+const currSymbols = { USD: '$', IDR: 'Rp ', EUR: '€', JPY: '¥', GBP: '£', BTC: '₿ ', ETH: 'Ξ ', SOL: 'SOL ' };
+
 let appState = {
     username: "VIP ACCOUNT",
-    totalBalance: 15400.50,
+    totalBalance: 15400.50, // Selalu disimpan dalam hitungan USD di memori
+    baseCurrency: "USD",    // Mata uang utama yang dipilih
     profilePic: DEFAULT_AVATAR,
     shares: { 'BTC': 0.4, 'ETH': 0.3, 'SOL': 0.1, 'PEPE': 0.1, 'USDT': 0.1 },
     prices: {},
     history: [] 
 };
 
+// ============================================
+// SISTEM MULTI-CURRENCY CONVERTER
+// ============================================
+function formatCurrencyDisplay(usdAmount, forceSymbol = false) {
+    const curr = appState.baseCurrency || 'USD';
+    let finalAmount = 0;
+    let symbol = currSymbols[curr] || curr + ' ';
+
+    if (fiatRates[curr]) {
+        // Jika itu mata uang negara (Fiat)
+        finalAmount = usdAmount * fiatRates[curr];
+        const isBigFiat = (curr === 'IDR' || curr === 'JPY');
+        return (forceSymbol ? symbol : '') + finalAmount.toLocaleString(isBigFiat ? 'id-ID' : 'en-US', {
+            minimumFractionDigits: isBigFiat ? 0 : 2,
+            maximumFractionDigits: isBigFiat ? 0 : 2
+        });
+    } else {
+        // Jika itu mata uang Crypto (BTC, ETH, dll)
+        const cryptoPrice = appState.prices[curr] ? appState.prices[curr].usd : 1;
+        finalAmount = usdAmount / cryptoPrice;
+        return (forceSymbol ? symbol : '') + finalAmount.toLocaleString('en-US', {minimumFractionDigits:4, maximumFractionDigits:6});
+    }
+}
+
+// Konversi input user kembali ke USD untuk disimpan
+function convertInputToUSD(inputAmount) {
+    const curr = appState.baseCurrency || 'USD';
+    if (fiatRates[curr]) return inputAmount / fiatRates[curr];
+    if (appState.prices[curr]) return inputAmount * appState.prices[curr].usd;
+    return inputAmount;
+}
+
+function changeBaseCurrency(curr) {
+    appState.baseCurrency = curr;
+    saveData();
+    renderHomeAssets();
+    renderMarketAssets();
+    renderHistory();
+    showToast(`Currency changed to ${curr}`);
+}
+
+// ============================================
+// CORE LOGIC & API
+// ============================================
 function initFallbackPrices() {
     cryptoDB.forEach(coin => {
         if (!appState.prices[coin.symbol]) appState.prices[coin.symbol] = { usd: coin.defaultPrice, change: (Math.random() * 5).toFixed(2) };
@@ -32,7 +81,7 @@ async function fetchLivePrices() {
     try {
         const ids = cryptoDB.map(c => c.id).join(',');
         const response = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`);
-        if (!response.ok) throw new Error("API Limit Reached");
+        if (!response.ok) throw new Error("API Limit");
         const data = await response.json();
         cryptoDB.forEach(coin => {
             if (data[coin.id] && data[coin.id].usd) appState.prices[coin.symbol] = { usd: data[coin.id].usd, change: data[coin.id].usd_24h_change || 0 };
@@ -43,21 +92,27 @@ async function fetchLivePrices() {
 }
 
 function renderHomeAssets() {
+    // 1. Render Total Balance diubah ke Multi-Currency
     const totalEl = document.getElementById('totalBalance');
-    if (totalEl) totalEl.innerText = appState.totalBalance.toLocaleString('en-US', { minimumFractionDigits: 2 });
+    if (totalEl) totalEl.innerText = formatCurrencyDisplay(appState.totalBalance, true);
     
+    // 2. Render UI Currency Selector Dropdown
+    const currSelect = document.getElementById('currencySelect');
+    if (currSelect) currSelect.value = appState.baseCurrency || 'USD';
+
     let totalChange = 0; let count = 0;
     cryptoDB.forEach(coin => {
         if (appState.prices[coin.symbol]) { totalChange += parseFloat(appState.prices[coin.symbol].change); count++; }
     });
     const avgChange = count > 0 ? (totalChange / count) : 0;
-    const pnlValue = (appState.totalBalance * (avgChange / 100));
+    const pnlValueUsd = (appState.totalBalance * (avgChange / 100));
     
     const pnlText = document.getElementById('pnlText');
     const pnlIcon = document.getElementById('pnlIcon');
     if(pnlText && pnlIcon) {
         const sign = avgChange >= 0 ? '+' : '';
-        pnlText.innerText = `${sign}$${Math.abs(pnlValue).toLocaleString('en-US', {minimumFractionDigits: 2})} (${sign}${avgChange.toFixed(2)}%)`;
+        const formattedPnl = formatCurrencyDisplay(Math.abs(pnlValueUsd), true);
+        pnlText.innerText = `${sign}${formattedPnl} (${sign}${avgChange.toFixed(2)}%)`;
         pnlText.className = `text-sm font-semibold ${avgChange >= 0 ? 'text-profit' : 'text-loss'}`;
         pnlIcon.className = `fa-solid ${avgChange >= 0 ? 'fa-caret-up text-profit' : 'fa-caret-down text-loss'}`;
     }
@@ -68,8 +123,8 @@ function renderHomeAssets() {
     cryptoDB.forEach(coin => {
         if (appState.shares[coin.symbol] && appState.prices[coin.symbol]) {
             const price = appState.prices[coin.symbol].usd;
-            const fiatValue = appState.totalBalance * appState.shares[coin.symbol];
-            container.innerHTML += createCoinCard(coin, fiatValue, fiatValue / price, false);
+            const usdValue = appState.totalBalance * appState.shares[coin.symbol];
+            container.innerHTML += createCoinCard(coin, usdValue, usdValue / price, false);
         }
     });
 }
@@ -81,31 +136,36 @@ function renderMarketAssets() {
     cryptoDB.forEach(coin => { if (appState.prices[coin.symbol]) container.innerHTML += createCoinCard(coin, 0, 0, true); });
 }
 
-function createCoinCard(coin, fiatValue, amount, isMarket = false) {
+function createCoinCard(coin, usdValue, amount, isMarket = false) {
     const data = appState.prices[coin.symbol] || { usd: coin.defaultPrice, change: 0 };
     const pnlClass = data.change >= 0 ? 'text-green-500' : 'text-red-500';
     const pnlSign = data.change >= 0 ? '+' : '';
-    const priceText = data.usd < 1 ? data.usd.toFixed(6) : data.usd.toLocaleString('en-US', {minimumFractionDigits: 2});
+    
+    // Format harga koin ke mata uang yang dipilih
+    const displayPriceText = formatCurrencyDisplay(data.usd, true);
+    const displayBalanceText = formatCurrencyDisplay(usdValue, true);
 
     const rightSide = isMarket 
-        ? `<h4 class="font-bold text-[15px] text-white">$${priceText}</h4><p class="${pnlClass} font-mono-num text-[11px]">${pnlSign}${parseFloat(data.change).toFixed(2)}%</p>`
-        : `<h4 class="font-bold text-[15px] text-white">$${fiatValue.toLocaleString('en-US', {minimumFractionDigits: 2})}</h4><p class="text-gray-500 font-mono-num text-[11px]">${amount.toFixed(4)} ${coin.symbol}</p>`;
+        ? `<h4 class="font-bold text-[15px] text-white">${displayPriceText}</h4><p class="${pnlClass} font-mono-num text-[11px]">${pnlSign}${parseFloat(data.change).toFixed(2)}%</p>`
+        : `<h4 class="font-bold text-[15px] text-white">${displayBalanceText}</h4><p class="text-gray-500 font-mono-num text-[11px]">${amount.toFixed(4)} ${coin.symbol}</p>`;
 
     const onClickAttr = isMarket ? `onclick="changeChart('${coin.tvSymbol}')" class="cursor-pointer"` : ``;
     return `<div ${onClickAttr} class="bg-[#141419] p-4 rounded-2xl flex justify-between items-center border border-gray-800/50 ${isMarket?'hover:bg-gray-800 transition':''}"><div class="flex items-center gap-4"><img src="${coin.img}" class="coin-logo" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=${coin.symbol}&background=1a1a1a&color=fff';"><div><h4 class="font-bold text-[15px] text-white">${coin.symbol}</h4><p class="text-[11px] text-gray-400">${coin.name}</p></div></div><div class="text-right">${rightSide}</div></div>`;
 }
 
 // ============================================
-// FITUR BARU: HISTORY & STRUK DETAIL
+// HISTORY & STRUK DETAIL (Mendukung Multi-Currency)
 // ============================================
 function renderHistory() {
     const homeContainer = document.getElementById('homeHistoryList');
     const fullContainer = document.getElementById('fullHistoryList');
     const history = appState.history || [];
-
     const emptyHtml = `<p class="text-xs text-gray-500 text-center py-4 bg-gray-900/50 rounded-xl">No transactions yet.</p>`;
     
-    const mapHistory = (tx) => `
+    const mapHistory = (tx) => {
+        const sign = tx.type === 'Send' ? '-' : '+';
+        const formattedAmount = formatCurrencyDisplay(tx.usdAmount, true); // Menyesuaikan riwayat lama ke format baru
+        return `
         <div onclick="showTxDetail('${tx.id}')" class="bg-[#141419] p-3 rounded-xl border border-gray-800/50 flex justify-between items-center cursor-pointer hover:bg-gray-800 transition">
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-full ${tx.type==='Send'?'bg-red-500/10 text-red-400':'bg-green-500/10 text-green-400'} flex items-center justify-center text-lg border border-gray-800">
@@ -113,9 +173,10 @@ function renderHistory() {
                 </div>
                 <div><p class="text-[14px] font-bold text-white">${tx.title}</p><p class="text-[10px] text-gray-500 font-mono">${tx.date.split(',')[0]}</p></div>
             </div>
-            <p class="text-[14px] font-bold font-mono-num ${tx.type==='Send'?'text-white':'text-green-400'}">${tx.type==='Send'?'-':'+'}$${tx.amount.toLocaleString()}</p>
+            <p class="text-[14px] font-bold font-mono-num ${tx.type==='Send'?'text-white':'text-green-400'}">${sign}${formattedAmount}</p>
         </div>
-    `;
+        `;
+    };
 
     if(homeContainer) homeContainer.innerHTML = history.length ? history.slice(0, 3).map(mapHistory).join('') : emptyHtml;
     if(fullContainer) fullContainer.innerHTML = history.length ? history.map(mapHistory).join('') : emptyHtml;
@@ -125,7 +186,7 @@ function showTxDetail(txid) {
     const tx = appState.history.find(t => t.id === txid);
     if(!tx) return;
     
-    document.getElementById('txDetailAmount').innerText = `$${tx.amount.toLocaleString()}`;
+    document.getElementById('txDetailAmount').innerText = formatCurrencyDisplay(tx.usdAmount, true);
     document.getElementById('txDetailTitle').innerText = tx.title;
     document.getElementById('txDetailDate').innerText = tx.date;
     document.getElementById('txDetailHash').innerText = tx.id;
@@ -138,37 +199,26 @@ function showTxDetail(txid) {
         iconEl.className = "w-16 h-16 rounded-full mx-auto flex items-center justify-center text-3xl mb-4 border-2 border-green-500/30 bg-green-500/10 text-green-400";
         iconEl.innerHTML = '<i class="fa-solid fa-arrow-down"></i>';
     }
-    
     toggleModal('txDetailModal');
 }
 
-function addTransaction(title, amount, type) {
+function addTransaction(title, usdAmount, type) {
     if(!appState.history) appState.history = [];
     const txid = "0x" + Math.random().toString(16).substr(2, 64).toUpperCase();
-    
     const dateOpts = { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' };
     const dateStr = new Date().toLocaleDateString('en-US', dateOpts);
-
-    appState.history.unshift({ title, amount, type, id: txid, date: dateStr });
+    appState.history.unshift({ title, usdAmount, type, id: txid, date: dateStr });
     saveData(); renderHistory();
 }
 
 // ============================================
-// FITUR BARU: PIN TRANSAKSI (Action PIN)
+// TRANSAKSI & PIN (Mendukung Input Mata Uang Pilihan)
 // ============================================
 let actionEnteredPin = "";
 let pendingCallback = null;
 
-function showActionPin(callback) {
-    pendingCallback = callback;
-    clearActionPin();
-    toggleModal('actionPinModal');
-}
-
-function enterActionPin(num) {
-    if(actionEnteredPin.length < 6) { actionEnteredPin += num; updateActionPinUI(); }
-    if(actionEnteredPin.length === 6) verifyActionPin();
-}
+function showActionPin(callback) { pendingCallback = callback; clearActionPin(); toggleModal('actionPinModal'); }
+function enterActionPin(num) { if(actionEnteredPin.length < 6) { actionEnteredPin += num; updateActionPinUI(); } if(actionEnteredPin.length === 6) verifyActionPin(); }
 function deleteActionPin() { actionEnteredPin = actionEnteredPin.slice(0, -1); updateActionPinUI(); }
 function clearActionPin() { actionEnteredPin = ""; updateActionPinUI(); }
 function updateActionPinUI() {
@@ -184,74 +234,66 @@ function updateActionPinUI() {
 }
 function verifyActionPin() {
     if(actionEnteredPin === CORRECT_PIN) {
-        toggleModal('actionPinModal');
-        showToast("Security Verified ✅");
-        if(pendingCallback) setTimeout(pendingCallback, 500); // Eksekusi transaksi setelah PIN benar
+        toggleModal('actionPinModal'); showToast("Security Verified ✅");
+        if(pendingCallback) setTimeout(pendingCallback, 500);
         pendingCallback = null;
-    } else {
-        showToast("Incorrect PIN! Transaction Aborted.");
-        clearActionPin();
-    }
+    } else { showToast("Incorrect PIN! Transaction Aborted."); clearActionPin(); }
 }
 
-// ============================================
-// LOGIKA TRANSAKSI YANG DILINDUNGI PIN
-// ============================================
 function handleAction(type) {
     const body = document.getElementById('actionBody');
-    if(type==='send') body.innerHTML = `<input type="text" placeholder="Wallet Address" class="w-full bg-gray-900 border border-gray-700 rounded-xl p-3 mb-3 text-white"><input type="number" id="sendAmt" placeholder="Amount (USD)" class="w-full bg-gray-900 border border-gray-700 rounded-xl p-3 text-white mb-4"><button onclick="executeSend()" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl">Send Crypto</button>`;
+    const curr = appState.baseCurrency || 'USD';
+    if(type==='send') body.innerHTML = `<input type="text" placeholder="Wallet Address" class="w-full bg-gray-900 border border-gray-700 rounded-xl p-3 mb-3 text-white"><input type="number" id="sendAmt" placeholder="Amount (${curr})" class="w-full bg-gray-900 border border-gray-700 rounded-xl p-3 text-white mb-4"><button onclick="executeSend()" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl">Send Crypto</button>`;
     else if(type==='receive') body.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=0xVIPAddress" class="mx-auto rounded-xl mb-3"><p class="text-gray-400 font-mono bg-gray-900 p-2 break-all">0xVIPWalletAddress098124509124</p>`;
-    else if(type==='topup') body.innerHTML = `<input type="number" id="topupAmt" placeholder="USD Amount" class="w-full bg-gray-900 border border-gray-700 rounded-xl p-3 text-white mb-4"><button onclick="executeTopUp()" class="w-full bg-green-600 text-white font-bold py-3 rounded-xl">Top Up</button>`;
+    else if(type==='topup') body.innerHTML = `<input type="number" id="topupAmt" placeholder="Amount (${curr})" class="w-full bg-gray-900 border border-gray-700 rounded-xl p-3 text-white mb-4"><button onclick="executeTopUp()" class="w-full bg-green-600 text-white font-bold py-3 rounded-xl">Top Up</button>`;
     toggleModal('actionModal');
 }
 
 function executeSend() { 
     const amt = parseFloat(document.getElementById('sendAmt').value); 
-    if(amt>0 && appState.totalBalance >= amt) { 
-        toggleModal('actionModal'); // Tutup layar input
-        showActionPin(() => {       // Minta PIN
-            appState.totalBalance -= amt; 
-            addTransaction("Send Crypto", amt, "Send"); 
-            renderHomeAssets(); 
-            showToast("Transfer Successful!"); 
-        });
-    } else { showToast("Invalid amount/balance!"); }
+    if(amt>0) {
+        const usdAmt = convertInputToUSD(amt);
+        if(appState.totalBalance >= usdAmt) {
+            toggleModal('actionModal'); 
+            showActionPin(() => { appState.totalBalance -= usdAmt; addTransaction("Send Crypto", usdAmt, "Send"); renderHomeAssets(); showToast("Transfer Successful!"); });
+        } else { showToast("Saldo Tidak Cukup!"); }
+    }
 }
 
 function executeTopUp() { 
     const amt = parseFloat(document.getElementById('topupAmt').value); 
     if(amt>0) { 
+        const usdAmt = convertInputToUSD(amt);
         toggleModal('actionModal'); 
-        showActionPin(() => {
-            appState.totalBalance += amt; 
-            addTransaction("Bank Deposit", amt, "Receive"); 
-            renderHomeAssets(); 
-            showToast(`Top Up $${amt} Success!`); 
-        });
+        showActionPin(() => { appState.totalBalance += usdAmt; addTransaction("Bank Deposit", usdAmt, "Receive"); renderHomeAssets(); showToast(`Top Up Success!`); });
     } 
 }
 
 function scanQRIS() {
     showToast("Membuka Kamera...");
+    const curr = appState.baseCurrency || 'USD';
     setTimeout(() => {
-        const amt = prompt("QRIS Terdeteksi! Masukkan nominal pembayaran (USD):");
-        if(amt && !isNaN(amt) && appState.totalBalance >= parseFloat(amt)) {
-            showActionPin(() => { // Minta PIN
-                appState.totalBalance -= parseFloat(amt);
-                addTransaction("QRIS Payment", parseFloat(amt), "Send");
-                renderHomeAssets(); 
-                showToast("Pembayaran QRIS Sukses!");
-            });
-        } else { showToast("Dibatalkan / Saldo Kurang!"); }
+        const amt = prompt(`QRIS Terdeteksi! Masukkan nominal pembayaran (${curr}):`);
+        if(amt && !isNaN(amt)) {
+            const usdAmt = convertInputToUSD(parseFloat(amt));
+            if(appState.totalBalance >= usdAmt) {
+                showActionPin(() => { appState.totalBalance -= usdAmt; addTransaction("QRIS Payment", usdAmt, "Send"); renderHomeAssets(); showToast("Pembayaran QRIS Sukses!"); });
+            } else { showToast("Saldo Tidak Cukup!"); }
+        }
     }, 1000);
 }
 
 // ============================================
-// SYSTEM UTILS
+// UTILITIES LAINNYA
 // ============================================
 function loadSaveData() {
     const saved = localStorage.getItem('mna_vip_wallet');
-    if (saved) appState = { ...appState, ...JSON.parse(saved) };
+    if (saved) {
+        let parsed = JSON.parse(saved);
+        // Migrasi history lama yang gak punya properti usdAmount
+        if(parsed.history) { parsed.history = parsed.history.map(tx => ({...tx, usdAmount: tx.usdAmount || tx.amount})); }
+        appState = { ...appState, ...parsed };
+    }
     initFallbackPrices(); updateProfileImages(); updateUsernameUI(); 
     renderHomeAssets(); renderMarketAssets(); renderHistory(); fetchLivePrices(); 
 }
@@ -259,9 +301,7 @@ function loadSaveData() {
 function saveData() { localStorage.setItem('mna_vip_wallet', JSON.stringify(appState)); }
 
 function updateUsernameUI() {
-    const headEl = document.getElementById('headerUsername');
-    const modEl = document.getElementById('modalUsername');
-    const pinEl = document.getElementById('pinUsername');
+    const headEl = document.getElementById('headerUsername'); const modEl = document.getElementById('modalUsername'); const pinEl = document.getElementById('pinUsername');
     if (headEl) headEl.innerText = appState.username; if (modEl) modEl.innerText = appState.username; if (pinEl) pinEl.innerText = `Welcome Back, ${appState.username.split(' ')[0]}`;
 }
 
@@ -284,7 +324,6 @@ document.getElementById('profileUpload').addEventListener('change', function(eve
     if (file) { const reader = new FileReader(); reader.onload = function(e) { appState.profilePic = e.target.result; updateProfileImages(); saveData(); showToast("Profile Picture Saved!"); }; reader.readAsDataURL(file); }
 });
 
-// Login PIN
 function showPinScreen() { const ps = document.getElementById('pin-screen'); ps.classList.remove('hidden'); setTimeout(() => ps.classList.remove('opacity-0'), 50); }
 function enterPin(num) { if (enteredPin.length < 6) { enteredPin += num; updatePinUI(); } if (enteredPin.length === 6) verifyPin(); }
 function deletePin() { enteredPin = enteredPin.slice(0, -1); updatePinUI(); }
